@@ -20,8 +20,15 @@ typedef struct {
 } KeygenResult;
 
 extern KeygenResult ext_generate_keys(uint32_t parties, uint32_t threshold);
+extern void ext_deal_triples(uint32_t parties,
+    uint32_t threshold,
+    const uint32_t* results_participant_u32,
+    size_t num_participants,
+    const char** results_output_serialized,
+    size_t num_results);
 */
 import "C"
+
 import (
 	"fmt"
 	"unsafe"
@@ -29,31 +36,22 @@ import (
 
 func main() {
 	research_keygen()
+	research_deal_triples()
 }
 
 func research_keygen() {
-	numParticipants := C.uint32_t(3)
+	numParticipants := C.uint32_t(2)
 	numThreshold := C.uint32_t(2)
-
-	// Call Rust function to generate keys
 	result := C.ext_generate_keys(numParticipants, numThreshold)
-
-	// Check if result is valid
 	if result.participants == nil || result.shares == nil || result.length == 0 {
 		fmt.Println("Failed to generate key shares")
 		return
 	}
-
 	// Convert participants array correctly - array size limited to 1 MB
 	participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
-
-	// 🔹 Print participants BEFORE processing shares
-	fmt.Println("Participants in Go BEFORE processing shares:", participants)
-
 	// Convert shares array (**C.char to Go slice) - array size limited to 1 MB
 	shares := make([]string, result.length)
 	sharesPtr := (*[1 << 18]*C.char)(unsafe.Pointer(result.shares))[:result.length:result.length] // Convert **C.char to slice
-
 	for i := 0; i < int(result.length); i++ {
 		if sharesPtr[i] == nil {
 			fmt.Printf("Warning: NULL string at index %d\n", i)
@@ -62,11 +60,26 @@ func research_keygen() {
 			shares[i] = C.GoString(sharesPtr[i]) // Convert C string to Go string
 		}
 	}
-
-	// 🔹 Ensure Order Consistency in Go
-	fmt.Println("Final Participants in Go:", participants)
-	fmt.Println("Shares in Go:")
+	fmt.Println("Final Participants [Go]:", participants)
+	fmt.Println("Shares [Go]:")
 	for i, share := range shares {
-		fmt.Printf("  Participant %d: %s\n", participants[i], share)
+		fmt.Printf("Participant %d: %s\n", participants[i], share)
 	}
+}
+
+func research_deal_triples() {
+	// participants should be from keygen
+	participants := []uint32{101, 202, 303}
+	numParticipants := C.size_t(len(participants))
+	participantsPtr := (*C.uint32_t)(unsafe.Pointer(&participants[0]))
+	// results should be from keygen
+	results := []string{`"result1"`, `"result2"`, `"result3"`}
+	numResults := C.size_t(len(results))
+	// Convert Go strings to **C.char
+	resultsC := make([]*C.char, len(results))
+	for i, s := range results {
+		resultsC[i] = C.CString(s)
+	}
+	resultsPtr := (**C.char)(unsafe.Pointer(&resultsC[0]))
+	C.ext_deal_triples(3, 2, participantsPtr, numParticipants, resultsPtr, numResults)
 }
