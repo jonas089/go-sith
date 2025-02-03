@@ -2,7 +2,7 @@
 Go Wrapper for the Rust Library [cait-sith](https://docs.rs/cait-sith/latest/cait_sith/).
 This repository is related to MPC research efforts at Chainsafe Systems.
 
-> !WARNING
+> [!WARNING]
 > This library is under active development. Use at your own risk > and only if knowledgeable about cait-sith, Rust, MPC and Go!
 
 
