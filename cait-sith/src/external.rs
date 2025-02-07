@@ -57,6 +57,7 @@ pub extern "C" fn ext_deal_triples(parties: usize, threshold: usize) -> *mut c_c
     participants_ptr
 }
 
+// this is a test function, split it up for each participant to run locally
 #[no_mangle]
 pub extern "C" fn ext_run_presign(
     threshold: usize,
@@ -123,6 +124,7 @@ pub extern "C" fn ext_run_presign(
     presign_out_ptr
 }
 
+// this is a test function, split it up for each participant to run locally
 #[no_mangle]
 pub extern "C" fn ext_run_sign(
     idx: usize,
