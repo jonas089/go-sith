@@ -49,16 +49,16 @@ func example_keygen_participants() ([]C.uint32_t, []*C.char) {
 	// Convert participants array correctly - array size limited to 1 MB
 	participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
 	// Convert shares array (**C.char to Go slice) - array size limited to 1 MB
-	shares := make([]string, result.length)
+	//shares := make([]string, result.length)
 	sharesPtr := (*[1 << 18]*C.char)(unsafe.Pointer(result.shares))[:result.length:result.length] // Convert **C.char to slice
-	for i := 0; i < int(result.length); i++ {
+	/*for i := 0; i < int(result.length); i++ {
 		if sharesPtr[i] == nil {
 			//fmt.Printf("Warning: NULL string at index %d\n", i)
 			shares[i] = "(NULL)"
 		} else {
 			shares[i] = C.GoString(sharesPtr[i]) // Convert C string to Go string
 		}
-	}
+	}*/
 	//fmt.Println("Final Participants [Go]:", participants)
 	//fmt.Println("Shares [Go]:")
 	/*for i, share := range shares {
@@ -67,7 +67,7 @@ func example_keygen_participants() ([]C.uint32_t, []*C.char) {
 	return participants, sharesPtr
 }
 
-func example_deal_triples() (string, string) {
+func example_deal_triples() (**C.char, **C.char) {
 	// participants should be from keygen
 	// results should be from keygen
 	participants, results := example_keygen_participants()
@@ -80,9 +80,9 @@ func example_deal_triples() (string, string) {
 	result := C.ext_deal_triples(3, 2, participantsPtr, numParticipants, resultsPtr, numResults)
 	fmt.Println(result)
 	// Convert C **char to Go slice of strings (triples)
-	triplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.triples)))
-	otherTriplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.other_triples)))
-	fmt.Println("Triples for Participant 0:", triplesJSON)
-	fmt.Println("Other Triples: ", otherTriplesJSON)
-	return triplesJSON, otherTriplesJSON
+	//triplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.triples)))
+	//otherTriplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.other_triples)))
+	fmt.Println("Triples for Participant 0:", result.triples)
+	fmt.Println("Other Triples: ", result.other_triples)
+	return result.triples, result.other_triples
 }
