@@ -83,13 +83,13 @@ pub extern "C" fn ext_generate_keys(parties: u32, threshold: u32) -> KeygenResul
 pub extern "C" fn ext_deal_triples(
     parties: u32,
     threshold: u32,
-    results_participant_u32: *const u32,
+    results_participant_u32: u32,
     num_participants: usize,
     results_output_serialized: *const *const c_char,
     num_results: usize,
 ) -> TripleResult {
     let participants: &[u32] =
-        unsafe { std::slice::from_raw_parts(results_participant_u32, num_participants) };
+        unsafe { std::slice::from_raw_parts(&results_participant_u32, num_participants) };
     let serialized_outputs: Vec<String> = unsafe {
         (0..num_results)
             .map(|i| {

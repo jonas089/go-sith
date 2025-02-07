@@ -35,11 +35,10 @@ import (
 )
 
 func main() {
-	research_keygen()
-	research_deal_triples()
+	example_deal_triples()
 }
 
-func research_keygen() ([]C.uint32_t, []string) {
+func example_keygen_participants() ([]C.uint32_t, []*C.char) {
 	numParticipants := C.uint32_t(2)
 	numThreshold := C.uint32_t(2)
 	result := C.ext_generate_keys(numParticipants, numThreshold)
@@ -65,30 +64,24 @@ func research_keygen() ([]C.uint32_t, []string) {
 	/*for i, share := range shares {
 		fmt.Printf("Participant %d: %s\n", participants[i], share)
 	}*/
-	return participants, shares
+	return participants, sharesPtr
 }
 
-func research_deal_triples() {
+func example_deal_triples() {
 	// participants should be from keygen
-	participants := []C.uint32_t{101, 202, 303}
-	numParticipants := C.size_t(len(participants))
-	participantsPtr := (*C.uint32_t)(unsafe.Pointer(&participants[0]))
 	// results should be from keygen
-	results := []string{`"result1"`, `"result2"`, `"result3"`}
+	participants, results := example_keygen_participants()
 	numResults := C.size_t(len(results))
-	// Convert Go strings to **C.char
-	resultsC := make([]*C.char, len(results))
-	for i, s := range results {
-		resultsC[i] = C.CString(s)
-	}
+	numParticipants := C.size_t(len(participants))
+	participantsPtr := (*C.uint32_t)(unsafe.Pointer(&participants))
 	// Properly pass a pointer to resultsC array
-	resultsPtr := (**C.char)(unsafe.Pointer(&resultsC[0]))
+	resultsPtr := (**C.char)(unsafe.Pointer(&results[0]))
 	// Call the C function
 	result := C.ext_deal_triples(3, 2, participantsPtr, numParticipants, resultsPtr, numResults)
 	fmt.Println(result)
 	// Convert C **char to Go slice of strings (triples)
 	triplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.triples)))
 	otherTriplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.other_triples)))
-	fmt.Println(triplesJSON)
-	fmt.Println(otherTriplesJSON)
+	fmt.Println("Triples for Participant 0:", triplesJSON)
+	fmt.Println("Other Triples: ", otherTriplesJSON)
 }
