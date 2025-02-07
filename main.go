@@ -8,11 +8,13 @@ package main
 
 extern char* ext_generate_keys(size_t parties, size_t threshold);
 extern char* ext_deal_triples(size_t parties, size_t threshold);
-extern void ext_run_presign(size_t threshold, char* keys, char* triples, char* other_triples);
+extern char* ext_run_presign(size_t threshold, char* keys, char* triples, char* other_triples);
+extern char* ext_run_sign(size_t idx, char* presign_out, char* keygen_out, char* msg);
 extern void free_rust_string(char* ptr);
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 )
 
@@ -40,7 +42,7 @@ func example_deal_triples() string {
 	return triples
 }
 
-func example_presign() {
+func example_presign() string {
 	numThreshold := C.size_t(2)
 	keys := example_keygen_participants()
 	triples := example_deal_triples()
@@ -53,9 +55,28 @@ func example_presign() {
 	defer C.free(unsafe.Pointer(cTriples))
 	defer C.free(unsafe.Pointer(cOtherTriples))
 
-	C.ext_run_presign(numThreshold, cKeys, cTriples, cOtherTriples)
+	cPresign := C.ext_run_presign(numThreshold, cKeys, cTriples, cOtherTriples)
+	presign := cStrToGoString(cPresign)
+	return presign
+}
+
+func example_sign() {
+	keys := example_keygen_participants()
+	triples := example_deal_triples()
+	otherTriples := example_deal_triples()
+	cKeys := C.CString(keys)
+	cTriples := C.CString(triples)
+	cOtherTriples := C.CString(otherTriples)
+	presign := example_presign()
+	cPresign := C.CString(presign)
+	sign := C.ext_run_sign(C.size_t(0), cPresign, cKeys, C.CString("hello chainsafe"))
+	fmt.Println("signature JSON: ", sign)
+	defer C.free(unsafe.Pointer(cKeys))
+	defer C.free(unsafe.Pointer(cTriples))
+	defer C.free(unsafe.Pointer(cOtherTriples))
+	defer C.free(unsafe.Pointer(cPresign))
 }
 
 func main() {
-	example_presign()
+	example_sign()
 }
