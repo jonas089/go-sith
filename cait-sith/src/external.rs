@@ -19,6 +19,12 @@ pub struct KeygenResult {
     length: usize,             // Length of both arrays
 }
 
+#[repr(C)]
+pub struct TripleResult {
+    triples: *mut c_char,
+    other_triples: *mut c_char,
+}
+
 #[no_mangle]
 pub extern "C" fn ext_generate_keys(parties: u32, threshold: u32) -> KeygenResult {
     let participants: Vec<Participant> =
@@ -43,10 +49,10 @@ pub extern "C" fn ext_generate_keys(parties: u32, threshold: u32) -> KeygenResul
         .map(|(p, share)| {
             let id = u32::from(*p);
             let json = serde_json::to_string(share).unwrap();
-            println!(
+            /*println!(
                 "Mapping: Participant {:?} -> u32: {} -> Share: {}",
                 p, id, json
-            );
+            );*/
             (id, json)
         })
         .collect();
@@ -81,7 +87,7 @@ pub extern "C" fn ext_deal_triples(
     num_participants: usize,
     results_output_serialized: *const *const c_char,
     num_results: usize,
-) {
+) -> TripleResult {
     let participants: &[u32] =
         unsafe { std::slice::from_raw_parts(results_participant_u32, num_participants) };
     let serialized_outputs: Vec<String> = unsafe {
@@ -93,17 +99,20 @@ pub extern "C" fn ext_deal_triples(
             .collect()
     };
     let results = participants.iter().zip(serialized_outputs);
-
     let participants: Vec<_> = (0..parties).map(|p| Participant::from(p as u32)).collect();
     let triples: HashMap<_, _> = results.into_iter().map(|(p, out)| (p, out)).collect();
-    let (other_triples_pub, other_triples_share): (
-        TriplePub<Secp256k1>,
-        Vec<TripleShare<Secp256k1>>,
-    ) = triples::deal(&mut OsRng, &participants, threshold as usize);
-    let other_triples: HashMap<_, _> = participants
-        .iter()
-        .zip(other_triples_share)
-        .map(|(p, share)| (p, (share, other_triples_pub.clone())))
-        .collect();
-    // todo: return (triples, other_triples) in a way that is FFI friendly
+
+    let other_triples: (TriplePub<Secp256k1>, Vec<TripleShare<Secp256k1>>) =
+        triples::deal(&mut OsRng, &participants, threshold as usize);
+
+    let triples_serialized = serde_json::to_string(&triples).unwrap();
+    let triples_ptr = Box::into_raw(triples_serialized.clone().into_boxed_str()) as *mut c_char;
+
+    let other_triples_serialized = serde_json::to_string(&other_triples).unwrap();
+    let other_triples_ptr =
+        Box::into_raw(other_triples_serialized.clone().into_boxed_str()) as *mut c_char;
+    TripleResult {
+        triples: triples_ptr as *mut c_char,
+        other_triples: other_triples_ptr as *mut c_char,
+    }
 }

@@ -19,13 +19,13 @@ typedef struct {
     size_t length;
 } KeygenResult;
 
+typedef struct {
+    char **triples;
+	char **other_triples;
+} TripleResult;
+
 extern KeygenResult ext_generate_keys(uint32_t parties, uint32_t threshold);
-extern void ext_deal_triples(uint32_t parties,
-    uint32_t threshold,
-    const uint32_t* results_participant_u32,
-    size_t num_participants,
-    const char** results_output_serialized,
-    size_t num_results);
+extern TripleResult ext_deal_triples(uint32_t parties, uint32_t threshold, uint32_t* results_participant_u32, size_t num_participants, char **results_output_serialized, size_t num_results);
 */
 import "C"
 
@@ -48,28 +48,28 @@ func research_keygen() {
 		return
 	}
 	// Convert participants array correctly - array size limited to 1 MB
-	participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
+	// participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
 	// Convert shares array (**C.char to Go slice) - array size limited to 1 MB
 	shares := make([]string, result.length)
 	sharesPtr := (*[1 << 18]*C.char)(unsafe.Pointer(result.shares))[:result.length:result.length] // Convert **C.char to slice
 	for i := 0; i < int(result.length); i++ {
 		if sharesPtr[i] == nil {
-			fmt.Printf("Warning: NULL string at index %d\n", i)
+			//fmt.Printf("Warning: NULL string at index %d\n", i)
 			shares[i] = "(NULL)"
 		} else {
 			shares[i] = C.GoString(sharesPtr[i]) // Convert C string to Go string
 		}
 	}
-	fmt.Println("Final Participants [Go]:", participants)
-	fmt.Println("Shares [Go]:")
-	for i, share := range shares {
+	//fmt.Println("Final Participants [Go]:", participants)
+	//fmt.Println("Shares [Go]:")
+	/*for i, share := range shares {
 		fmt.Printf("Participant %d: %s\n", participants[i], share)
-	}
+	}*/
 }
 
 func research_deal_triples() {
 	// participants should be from keygen
-	participants := []uint32{101, 202, 303}
+	participants := []C.uint32_t{101, 202, 303}
 	numParticipants := C.size_t(len(participants))
 	participantsPtr := (*C.uint32_t)(unsafe.Pointer(&participants[0]))
 	// results should be from keygen
@@ -80,6 +80,14 @@ func research_deal_triples() {
 	for i, s := range results {
 		resultsC[i] = C.CString(s)
 	}
+	// Properly pass a pointer to resultsC array
 	resultsPtr := (**C.char)(unsafe.Pointer(&resultsC[0]))
-	C.ext_deal_triples(3, 2, participantsPtr, numParticipants, resultsPtr, numResults)
+	// Call the C function
+	result := C.ext_deal_triples(3, 2, participantsPtr, numParticipants, resultsPtr, numResults)
+	fmt.Println(result)
+	// Convert C **char to Go slice of strings (triples)
+	triplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.triples)))
+	otherTriplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.other_triples)))
+	fmt.Println(triplesJSON)
+	fmt.Println(otherTriplesJSON)
 }
