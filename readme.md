@@ -3,7 +3,9 @@ Go Wrapper for the Rust Library [cait-sith](https://docs.rs/cait-sith/latest/cai
 This repository is related to MPC research efforts at Chainsafe Systems.
 
 > [!WARNING]
-> This library is under active development. Use at your own risk > and only if knowledgeable about cait-sith, Rust, MPC and Go!
+> This library is under active development. Use at your own risk 
+> and only if knowledgeable about cait-sith, Rust, MPC and Go!
+> NEVER RE-USE TRIPLES and NEVER RE-USE PRESIGNS!
 
 
 # Try the EXT FFI
