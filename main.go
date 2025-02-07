@@ -42,7 +42,7 @@ func example_deal_triples() string {
 	return triples
 }
 
-func example_presign() string {
+func example_presign() (string, string, string, string) {
 	numThreshold := C.size_t(2)
 	keys := example_keygen_participants()
 	triples := example_deal_triples()
@@ -57,17 +57,14 @@ func example_presign() string {
 
 	cPresign := C.ext_run_presign(numThreshold, cKeys, cTriples, cOtherTriples)
 	presign := cStrToGoString(cPresign)
-	return presign
+	return presign, keys, triples, otherTriples
 }
 
 func example_sign() {
-	keys := example_keygen_participants()
-	triples := example_deal_triples()
-	otherTriples := example_deal_triples()
+	presign, keys, triples, otherTriples := example_presign()
 	cKeys := C.CString(keys)
 	cTriples := C.CString(triples)
 	cOtherTriples := C.CString(otherTriples)
-	presign := example_presign()
 	cPresign := C.CString(presign)
 	sign := C.ext_run_sign(C.size_t(0), cPresign, cKeys, C.CString("hello chainsafe"))
 	fmt.Println("signature JSON: ", sign)
