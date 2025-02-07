@@ -34,7 +34,9 @@ pub extern "C" fn ext_generate_keys(parties: usize, threshold: usize) -> *mut c_
         let protocol = protocol.unwrap();
         protocols.push((*p, Box::new(protocol)));
     }
-    let keygen_out: Vec<(Participant, KeygenOutput<Secp256k1>)> = run_protocol(protocols).unwrap();
+    let mut keygen_out: Vec<(Participant, KeygenOutput<Secp256k1>)> =
+        run_protocol(protocols).unwrap();
+    keygen_out.sort_by_key(|(p, _)| *p);
     let keygen_out_serialized = serde_json::to_string(&keygen_out).unwrap();
     let keygen_out_ptr = Box::into_raw(keygen_out_serialized.into_boxed_str()) as *mut c_char;
     keygen_out_ptr
@@ -113,8 +115,9 @@ pub extern "C" fn ext_run_presign(
         protocols.push((p, Box::new(protocol)));
     }
 
-    let presign_out: Vec<(Participant, PresignOutput<Secp256k1>)> =
+    let mut presign_out: Vec<(Participant, PresignOutput<Secp256k1>)> =
         run_protocol(protocols).unwrap();
+    presign_out.sort_by_key(|(p, _)| *p);
     let presign_out_serialized = serde_json::to_string(&presign_out).unwrap();
     let presign_out_ptr = Box::into_raw(presign_out_serialized.into_boxed_str()) as *mut c_char;
     presign_out_ptr
@@ -137,6 +140,7 @@ pub extern "C" fn ext_run_sign(
             .to_str()
             .expect("Failed to convert C string to Rust string")
     };
+
     let msg_str = unsafe {
         CStr::from_ptr(msg)
             .to_str()
