@@ -20,6 +20,7 @@ pub extern "C" fn free_rust_string(ptr: *mut c_char) {
     }
 }
 
+// this is a test function, split it up for each participant to run locally
 #[no_mangle]
 pub extern "C" fn ext_generate_keys(parties: usize, threshold: usize) -> *mut c_char {
     let participants: Vec<Participant> =
@@ -42,6 +43,7 @@ pub extern "C" fn ext_generate_keys(parties: usize, threshold: usize) -> *mut c_
     keygen_out_ptr
 }
 
+// this is a test function, split it up for each participant to run locally
 #[no_mangle]
 pub extern "C" fn ext_deal_triples(parties: usize, threshold: usize) -> *mut c_char {
     let mut participants: Vec<Participant> = vec![];
