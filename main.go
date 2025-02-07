@@ -1,10 +1,3 @@
-/*
-	This file contains research functions that aim to wrap the core functionality of the
-	cait_sith library in Go.
-
-	This code can be re-factored and integrated to use cait_sith in a complex Go environment.
-*/
-
 package main
 
 /*
@@ -13,31 +6,56 @@ package main
 #include <stdint.h>
 #include <stdlib.h>
 
-extern char* ext_generate_keys(uint32_t parties, uint32_t threshold);
+extern char* ext_generate_keys(size_t parties, size_t threshold);
 extern char* ext_deal_triples(size_t parties, size_t threshold);
+extern void ext_run_presign(size_t threshold, char* keys, char* triples, char* other_triples);
+extern void free_rust_string(char* ptr);
 */
 import "C"
-
 import (
-	"fmt"
+	"unsafe"
 )
 
-func main() {
-	example_keygen_participants()
-	example_deal_triples()
+// Convert C string to Go string and free memory
+func cStrToGoString(cstr *C.char) string {
+	if cstr == nil {
+		return ""
+	}
+	defer C.free_rust_string(cstr) // Ensure we free memory allocated by Rust
+	return C.GoString(cstr)
 }
 
-func example_keygen_participants() C.char {
-	numParticipants := C.uint32_t(2)
-	numThreshold := C.uint32_t(2)
-	serialized_keygen_out := C.ext_generate_keys(numParticipants, numThreshold)
-	fmt.Println("Keys:", serialized_keygen_out)
-	return *serialized_keygen_out
-}
-
-func example_deal_triples() C.char {
+func example_keygen_participants() string {
 	numParticipants := C.size_t(2)
-	serialized_triples := C.ext_deal_triples(numParticipants, 2)
-	fmt.Println("Triples:", serialized_triples)
-	return *serialized_triples
+	numThreshold := C.size_t(2)
+	cKeys := C.ext_generate_keys(numParticipants, numThreshold)
+	keys := cStrToGoString(cKeys)
+	return keys
+}
+
+func example_deal_triples() string {
+	numParticipants := C.size_t(2)
+	cTriples := C.ext_deal_triples(numParticipants, 2)
+	triples := cStrToGoString(cTriples)
+	return triples
+}
+
+func example_presign() {
+	numThreshold := C.size_t(2)
+	keys := example_keygen_participants()
+	triples := example_deal_triples()
+	otherTriples := example_deal_triples()
+
+	cKeys := C.CString(keys)
+	cTriples := C.CString(triples)
+	cOtherTriples := C.CString(otherTriples)
+	defer C.free(unsafe.Pointer(cKeys))
+	defer C.free(unsafe.Pointer(cTriples))
+	defer C.free(unsafe.Pointer(cOtherTriples))
+
+	C.ext_run_presign(numThreshold, cKeys, cTriples, cOtherTriples)
+}
+
+func main() {
+	example_presign()
 }
