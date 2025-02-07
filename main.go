@@ -39,16 +39,16 @@ func main() {
 	research_deal_triples()
 }
 
-func research_keygen() {
+func research_keygen() []C.uint32_t {
 	numParticipants := C.uint32_t(2)
 	numThreshold := C.uint32_t(2)
 	result := C.ext_generate_keys(numParticipants, numThreshold)
 	if result.participants == nil || result.shares == nil || result.length == 0 {
 		fmt.Println("Failed to generate key shares")
-		return
+		return nil
 	}
 	// Convert participants array correctly - array size limited to 1 MB
-	// participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
+	participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
 	// Convert shares array (**C.char to Go slice) - array size limited to 1 MB
 	shares := make([]string, result.length)
 	sharesPtr := (*[1 << 18]*C.char)(unsafe.Pointer(result.shares))[:result.length:result.length] // Convert **C.char to slice
@@ -65,6 +65,7 @@ func research_keygen() {
 	/*for i, share := range shares {
 		fmt.Printf("Participant %d: %s\n", participants[i], share)
 	}*/
+	return participants
 }
 
 func research_deal_triples() {
