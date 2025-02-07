@@ -15,7 +15,7 @@ package main
 
 typedef struct {
     uint32_t *participants;
-    char **shares;
+    char **keygen_out;
     size_t length;
 } KeygenResult;
 
@@ -42,25 +42,25 @@ func example_keygen_participants() ([]C.uint32_t, []*C.char) {
 	numParticipants := C.uint32_t(2)
 	numThreshold := C.uint32_t(2)
 	result := C.ext_generate_keys(numParticipants, numThreshold)
-	if result.participants == nil || result.shares == nil || result.length == 0 {
-		fmt.Println("Failed to generate key shares")
+	if result.participants == nil || result.keygen_out == nil || result.length == 0 {
+		fmt.Println("Failed to generate key keygen_out")
 		return nil, nil
 	}
 	// participants array size limited to 1 MB in this example
 	participants := (*[1 << 18]C.uint32_t)(unsafe.Pointer(result.participants))[:result.length:result.length]
-	// same for shares
-	keysPtr := (*[1 << 18]*C.char)(unsafe.Pointer(result.shares))[:result.length:result.length] // Convert **C.char to slice
+	// same for keygen_out
+	keysPtr := (*[1 << 18]*C.char)(unsafe.Pointer(result.keygen_out))[:result.length:result.length] // Convert **C.char to slice
 	/*for i := 0; i < int(result.length); i++ {
-		if sharesPtr[i] == nil {
+		if keygen_outPtr[i] == nil {
 			//fmt.Printf("Warning: NULL string at index %d\n", i)
-			shares[i] = "(NULL)"
+			keygen_out[i] = "(NULL)"
 		} else {
-			shares[i] = C.GoString(sharesPtr[i]) // Convert C string to Go string
+			keygen_out[i] = C.GoString(keygen_outPtr[i]) // Convert C string to Go string
 		}
 	}*/
 	//fmt.Println("Final Participants [Go]:", participants)
-	//fmt.Println("Shares [Go]:")
-	/*for i, share := range shares {
+	//fmt.Println("keygen_out [Go]:")
+	/*for i, share := range keygen_out {
 		fmt.Printf("Participant %d: %s\n", participants[i], share)
 	}*/
 	return participants, keysPtr

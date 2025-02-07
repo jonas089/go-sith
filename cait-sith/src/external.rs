@@ -14,9 +14,9 @@ use std::{
 
 #[repr(C)]
 pub struct KeygenResult {
-    participants: *mut c_uint, // Pointer to array of u32
-    shares: *mut *mut c_char,  // Pointer to array of C strings
-    length: usize,             // Length of both arrays
+    participants: *mut c_uint,     // Pointer to array of u32
+    keygen_outs: *mut *mut c_char, // Pointer to array of C strings
+    length: usize,                 // Length of both arrays
 }
 
 #[repr(C)]
@@ -42,27 +42,27 @@ pub extern "C" fn ext_generate_keys(parties: u32, threshold: u32) -> KeygenResul
     let keygen_out: Vec<(Participant, KeygenOutput<Secp256k1>)> = run_protocol(protocols).unwrap();
     let mut ordered_mapping: Vec<(u32, String)> = keygen_out
         .iter()
-        .map(|(p, share)| {
+        .map(|(p, keygen_out)| {
             let id = u32::from(*p);
-            let json = serde_json::to_string(share).unwrap();
+            let json = serde_json::to_string(keygen_out).unwrap();
             (id, json)
         })
         .collect();
     ordered_mapping.sort_by_key(|&(id, _)| id);
     let participants_u32: Vec<u32> = ordered_mapping.iter().map(|&(id, _)| id).collect();
-    let shares_serialized: Vec<CString> = ordered_mapping
+    let keygen_outs_serialized: Vec<CString> = ordered_mapping
         .iter()
         .map(|(_, json)| CString::new(json.clone()).unwrap())
         .collect();
-    let shares_ptrs: Vec<*mut c_char> = shares_serialized
+    let keygen_outs_ptrs: Vec<*mut c_char> = keygen_outs_serialized
         .iter()
         .map(|s| s.clone().into_raw())
         .collect();
     let participants_ptr = Box::into_raw(participants_u32.into_boxed_slice()) as *mut c_uint;
-    let shares_ptr = Box::into_raw(shares_ptrs.into_boxed_slice()) as *mut *mut c_char;
+    let keygen_outs_ptr = Box::into_raw(keygen_outs_ptrs.into_boxed_slice()) as *mut *mut c_char;
     KeygenResult {
         participants: participants_ptr,
-        shares: shares_ptr,
+        keygen_outs: keygen_outs_ptr,
         length: ordered_mapping.len(),
     }
 }
