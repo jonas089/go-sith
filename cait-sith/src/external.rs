@@ -1,7 +1,7 @@
 use crate::{
     keygen,
     protocol::{run_protocol, Participant, Protocol},
-    triples::{self, TriplePub, TripleShare},
+    triples::{self, deal, TriplePub, TripleShare},
     KeygenOutput,
 };
 use k256::Secp256k1;
@@ -14,9 +14,9 @@ use std::{
 
 #[repr(C)]
 pub struct KeygenResult {
-    participants: *mut c_uint,     // Pointer to array of u32
+    participants: *mut c_uint,     // Pointer to array of int
     keygen_outs: *mut *mut c_char, // Pointer to array of C strings
-    length: usize,                 // Length of both arrays
+    length: usize,
 }
 
 #[repr(C)]
@@ -60,6 +60,10 @@ pub extern "C" fn ext_generate_keys(parties: u32, threshold: u32) -> KeygenResul
         .collect();
     let participants_ptr = Box::into_raw(participants_u32.into_boxed_slice()) as *mut c_uint;
     let keygen_outs_ptr = Box::into_raw(keygen_outs_ptrs.into_boxed_slice()) as *mut *mut c_char;
+    assert_eq!(
+        keygen_out.first().unwrap().1.public_key,
+        keygen_out.get(1).unwrap().1.public_key
+    );
     KeygenResult {
         participants: participants_ptr,
         keygen_outs: keygen_outs_ptr,
@@ -68,36 +72,22 @@ pub extern "C" fn ext_generate_keys(parties: u32, threshold: u32) -> KeygenResul
 }
 
 #[no_mangle]
-pub extern "C" fn ext_deal_triples(
-    parties: usize,
-    threshold: u32,
-    results_output_serialized: *const *const c_char,
-    num_results: usize,
-) -> TripleResult {
-    let mut participants: Vec<u32> = vec![];
+pub extern "C" fn ext_deal_triples(parties: usize, threshold: usize) -> *mut c_char {
+    let mut participants: Vec<Participant> = vec![];
     for i in 0..parties {
-        participants.push(i as u32);
+        participants.push(Participant::from(i as u32));
     }
-    let serialized_outputs: Vec<String> = unsafe {
-        (0..num_results)
-            .map(|i| {
-                let c_str = std::ffi::CStr::from_ptr(*results_output_serialized.add(i));
-                c_str.to_string_lossy().into_owned()
-            })
-            .collect()
-    };
-    let results = participants.iter().zip(serialized_outputs);
-    let participants: Vec<_> = (0..parties).map(|p| Participant::from(p as u32)).collect();
-    let triples: HashMap<_, _> = results.into_iter().map(|(p, out)| (p, out)).collect();
-    let other_triples: (TriplePub<Secp256k1>, Vec<TripleShare<Secp256k1>>) =
-        triples::deal(&mut OsRng, &participants, threshold as usize);
-    let triples_serialized = serde_json::to_string(&triples).unwrap();
-    let triples_ptr = Box::into_raw(triples_serialized.clone().into_boxed_str()) as *mut c_char;
-    let other_triples_serialized = serde_json::to_string(&other_triples).unwrap();
-    let other_triples_ptr =
-        Box::into_raw(other_triples_serialized.clone().into_boxed_str()) as *mut c_char;
-    TripleResult {
-        triples: triples_ptr as *mut c_char,
-        other_triples: other_triples_ptr as *mut c_char,
-    }
+
+    let tripes: (TriplePub<Secp256k1>, Vec<TripleShare<Secp256k1>>) =
+        deal(&mut OsRng, &participants, threshold);
+
+    let triples_serialized = serde_json::to_string(&tripes).unwrap();
+    let participants_ptr = Box::into_raw(triples_serialized.into_boxed_str()) as *mut c_char;
+    participants_ptr
 }
+
+#[no_mangle]
+pub extern "C" fn run_presign() {}
+
+#[no_mangle]
+pub extern "C" fn run_sign() {}
