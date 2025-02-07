@@ -115,7 +115,7 @@
 //! While these can be desirable in certain situations, we aren't satisfied
 //! with the way the property of identifiable aborts is modeled currently,
 //! and are working on improvements to this model.
-mod compat;
+pub mod compat;
 mod constants;
 mod crypto;
 pub mod external;

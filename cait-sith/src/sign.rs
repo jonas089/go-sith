@@ -1,4 +1,5 @@
 use elliptic_curve::{ops::Invert, scalar::IsHigh, Field, Group, ScalarPrimitive};
+use serde::{Deserialize, Serialize};
 use subtle::ConditionallySelectable;
 
 use crate::{
@@ -22,7 +23,7 @@ use crate::{
 ///
 /// To support these variants, this simply gives you a normal signature, along with the entire
 /// first point.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FullSignature<C: CSCurve> {
     /// This is the entire first point.
     pub big_r: C::AffinePoint,

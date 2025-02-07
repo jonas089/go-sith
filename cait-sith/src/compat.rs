@@ -1,7 +1,9 @@
+use digest::{Digest, FixedOutput};
+use ecdsa::hazmat::DigestPrimitive;
 use elliptic_curve::{ops::Reduce, point::AffineCoordinates, Curve, CurveArithmetic, PrimeCurve};
+use k256::{FieldBytes, Scalar, Secp256k1};
 use rand_core::CryptoRngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 /// Represents a curve suitable for use in cait-sith.
 ///
 /// This is the trait that any curve usable in this library must implement.
@@ -13,6 +15,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 ///
 /// Beyond that, we also require that curves have a name, for domain separation,
 /// and a way to serialize points with serde.
+pub fn scalar_hash_extffi(msg: &[u8]) -> <Secp256k1 as CurveArithmetic>::Scalar {
+    let digest = <Secp256k1 as DigestPrimitive>::Digest::new_with_prefix(msg);
+    let m_bytes: FieldBytes = digest.finalize_fixed();
+    <Scalar as Reduce<<Secp256k1 as Curve>::Uint>>::reduce_bytes(&m_bytes)
+}
 pub trait CSCurve: PrimeCurve + CurveArithmetic {
     const NAME: &'static [u8];
 
@@ -76,7 +83,7 @@ mod test_scalar_hash {
     use k256::{FieldBytes, Scalar, Secp256k1};
 
     #[cfg(test)]
-    pub(crate) fn scalar_hash(msg: &[u8]) -> <Secp256k1 as CurveArithmetic>::Scalar {
+    pub fn scalar_hash(msg: &[u8]) -> <Secp256k1 as CurveArithmetic>::Scalar {
         let digest = <Secp256k1 as DigestPrimitive>::Digest::new_with_prefix(msg);
         let m_bytes: FieldBytes = digest.finalize_fixed();
         <Scalar as Reduce<<Secp256k1 as Curve>::Uint>>::reduce_bytes(&m_bytes)
@@ -84,10 +91,10 @@ mod test_scalar_hash {
 }
 
 #[cfg(test)]
-pub(crate) use test_scalar_hash::scalar_hash;
+pub use test_scalar_hash::scalar_hash;
 
 #[derive(Clone, Copy)]
-pub(crate) struct SerializablePoint<C: CSCurve>(C::AffinePoint);
+pub struct SerializablePoint<C: CSCurve>(C::AffinePoint);
 
 impl<C: CSCurve> SerializablePoint<C> {
     pub fn to_projective(self) -> C::ProjectivePoint {
@@ -119,6 +126,6 @@ impl<'de, C: CSCurve> Deserialize<'de> for SerializablePoint<C> {
 }
 
 /// Get the x coordinate of a point, as a scalar
-pub(crate) fn x_coordinate<C: CSCurve>(point: &C::AffinePoint) -> C::Scalar {
+pub fn x_coordinate<C: CSCurve>(point: &C::AffinePoint) -> C::Scalar {
     <C::Scalar as Reduce<<C as Curve>::Uint>>::reduce_bytes(&point.x())
 }

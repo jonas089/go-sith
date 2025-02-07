@@ -1,8 +1,10 @@
 use crate::{
+    compat::scalar_hash_extffi as scalar_hash,
     keygen, presign,
     protocol::{run_protocol, Participant, Protocol},
+    sign,
     triples::{deal, TriplePub, TripleShare},
-    KeygenOutput, PresignArguments, PresignOutput,
+    FullSignature, KeygenOutput, PresignArguments, PresignOutput,
 };
 use k256::Secp256k1;
 use rand_core::OsRng;
@@ -119,4 +121,55 @@ pub extern "C" fn ext_run_presign(
 }
 
 #[no_mangle]
-pub extern "C" fn ext_run_sign() {}
+pub extern "C" fn ext_run_sign(
+    idx: usize,
+    presign_out: *mut c_char,
+    keygen_out: *mut c_char,
+    msg: *mut c_char,
+) -> *mut c_char {
+    let presign_str = unsafe {
+        CStr::from_ptr(presign_out)
+            .to_str()
+            .expect("Failed to convert C string to Rust string")
+    };
+    let keygen_str = unsafe {
+        CStr::from_ptr(keygen_out)
+            .to_str()
+            .expect("Failed to convert C string to Rust string")
+    };
+    let msg_str = unsafe {
+        CStr::from_ptr(msg)
+            .to_str()
+            .expect("Failed to convert C string to Rust string")
+    };
+    let presign_deserialized: Vec<(Participant, PresignOutput<Secp256k1>)> =
+        serde_json::from_str(&presign_str).expect("Failed to deserialize presign");
+    let keygen_deserialized: Vec<(Participant, KeygenOutput<Secp256k1>)> =
+        serde_json::from_str(&keygen_str).expect("Failed to deserialize keygen");
+    // use the public key at the target index
+    let public_key = keygen_deserialized.get(idx).unwrap().1.public_key;
+    let mut protocols: Vec<(
+        Participant,
+        Box<dyn Protocol<Output = FullSignature<Secp256k1>>>,
+    )> = Vec::with_capacity(presign_deserialized.len());
+    let participant_list: Vec<Participant> = presign_deserialized.iter().map(|(p, _)| *p).collect();
+
+    for (p, presign_out) in presign_deserialized.into_iter() {
+        let protocol = sign(
+            &participant_list,
+            p,
+            public_key,
+            presign_out,
+            scalar_hash(&serde_json::to_vec(&msg_str).expect("Failed to serialize message")),
+        );
+        assert!(protocol.is_ok());
+        let protocol = protocol.unwrap();
+        protocols.push((p, Box::new(protocol)));
+    }
+
+    let sign_out: Vec<(Participant, FullSignature<Secp256k1>)> = run_protocol(protocols).unwrap();
+    let sign_out_serialized =
+        serde_json::to_string(&sign_out).expect("Failed to serialize signature");
+    let sign_out_ptr = Box::into_raw(sign_out_serialized.into_boxed_str()) as *mut c_char;
+    sign_out_ptr
+}
