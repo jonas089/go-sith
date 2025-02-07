@@ -49,10 +49,10 @@ pub extern "C" fn ext_deal_triples(parties: usize, threshold: usize) -> *mut c_c
         participants.push(Participant::from(i as u32));
     }
 
-    let tripes: (TriplePub<Secp256k1>, Vec<TripleShare<Secp256k1>>) =
+    let triples: (TriplePub<Secp256k1>, Vec<TripleShare<Secp256k1>>) =
         deal(&mut OsRng, &participants, threshold);
 
-    let triples_serialized = serde_json::to_string(&tripes).unwrap();
+    let triples_serialized = serde_json::to_string(&triples).unwrap();
     let participants_ptr = Box::into_raw(triples_serialized.into_boxed_str()) as *mut c_char;
     participants_ptr
 }
@@ -93,9 +93,7 @@ pub extern "C" fn ext_run_presign(
         Participant,
         Box<dyn Protocol<Output = PresignOutput<Secp256k1>>>,
     )> = Vec::with_capacity(keys_deserialized.len());
-
     let participant_list: Vec<Participant> = keys_deserialized.iter().map(|(p, _)| *p).collect();
-
     for (((p, keygen_out), share0), share1) in keys_deserialized
         .into_iter()
         .zip(triples_deserialized.1.into_iter())
