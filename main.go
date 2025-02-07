@@ -67,7 +67,7 @@ func example_keygen_participants() ([]C.uint32_t, []*C.char) {
 	return participants, sharesPtr
 }
 
-func example_deal_triples() {
+func example_deal_triples() (string, string) {
 	// participants should be from keygen
 	// results should be from keygen
 	participants, results := example_keygen_participants()
@@ -84,4 +84,5 @@ func example_deal_triples() {
 	otherTriplesJSON := C.GoString((*C.char)(unsafe.Pointer(result.other_triples)))
 	fmt.Println("Triples for Participant 0:", triplesJSON)
 	fmt.Println("Other Triples: ", otherTriplesJSON)
+	return triplesJSON, otherTriplesJSON
 }
