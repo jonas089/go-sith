@@ -7,6 +7,16 @@ This repository is related to MPC research efforts at Chainsafe Systems.
 > and only if knowledgeable about cait-sith, Rust, MPC and Go!
 > NEVER RE-USE TRIPLES and NEVER RE-USE PRESIGNS!
 
+> [!WARNING]
+> Last updated: 09.02.2025.
+> Implemented tests for generating a multi party signature
+> Generate keys for parties, have parties generate triples,
+> run presign, run sign
+>
+> Some work tbd to make this production ready:
+> split the code up so that it can be run by parties independently,
+> rather than simulate an interaction.
+
 
 # Try the EXT FFI
 
